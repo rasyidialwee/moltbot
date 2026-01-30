@@ -1,0 +1,54 @@
+# Moltbot + Ollama (CPU-only). Run locally, then migrate same stack to Dockge.
+# Dashboard: http://127.0.0.1:18789  |  Ollama API: http://127.0.0.1:11434
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: moltbot-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  moltbot-gateway:
+    image: ${CLAWDBOT_IMAGE:-moltbot:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moltbot-gateway
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      CLAWDBOT_GATEWAY_TOKEN: ${CLAWDBOT_GATEWAY_TOKEN}
+      CLAWDBOT_GATEWAY_BIND: ${CLAWDBOT_GATEWAY_BIND:-loopback}
+      CLAWDBOT_GATEWAY_PORT: ${CLAWDBOT_GATEWAY_PORT:-18789}
+      CLAWDBOT_BRIDGE_PORT: ${CLAWDBOT_BRIDGE_PORT:-18790}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-ollama-local}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+    volumes:
+      # Use .openclaw (new path) to avoid EBUSY when app migrates .clawdbot -> .openclaw
+      - ${CLAWDBOT_CONFIG_DIR:-./data/moltbot-config}:/home/node/.openclaw
+      - ${CLAWDBOT_WORKSPACE_DIR:-./data/moltbot-workspace}:/home/node/clawd
+    ports:
+      - "127.0.0.1:${CLAWDBOT_GATEWAY_PORT:-18789}:18789"
+      - "127.0.0.1:${CLAWDBOT_BRIDGE_PORT:-18790}:18790"
+    depends_on:
+      - ollama
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "loopback",
+        "--port",
+        "18789",
+        "--allow-unconfigured"
+      ]
+
+volumes:
+  ollama_data:
+    name: moltbot-ollama-data
