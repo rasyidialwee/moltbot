@@ -71,17 +71,40 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    Pull with: `docker compose exec ollama ollama pull <name>` (e.g. `ollama pull glm4`). Then set that model as the default in the Moltbot dashboard (Settings → Model providers → Ollama).
 
-5. **Configure Ollama in Moltbot**
+5. **Open the dashboard (with token)**
 
-   - Open http://127.0.0.1:18789
+   The gateway requires authentication. Open the dashboard with your token in the URL:
+
+   ```
+   http://127.0.0.1:18789/?token=YOUR_CLAWDBOT_GATEWAY_TOKEN
+   ```
+
+   Replace `YOUR_CLAWDBOT_GATEWAY_TOKEN` with the value you set in `.env`. The token is saved in your browser after first use.
+
+6. **Approve device pairing (first time only)**
+
+   On first connection, you'll see "pairing required" error. The gateway requires you to approve new devices. In another terminal:
+
+   ```bash
+   # List pending pairing requests
+   docker exec moltbot-gateway node dist/index.js devices list
+
+   # Approve the pending request (use the Request ID from the list)
+   docker exec moltbot-gateway node dist/index.js devices approve <REQUEST_ID>
+   ```
+
+   After approving, refresh your browser. The device is now paired and won't require approval again.
+
+7. **Configure Ollama in Moltbot**
+
    - In Settings / Model providers, add **Ollama**
    - Base URL: `http://ollama:11434` (or `http://ollama:11434/v1` if the UI asks for an OpenAI-compatible base URL)
    - Set your chosen model (e.g. `glm4`) as the default
 
-6. **Verify**
+8. **Verify**
 
    - Ollama: `curl -s http://127.0.0.1:11434/api/tags`
-   - Dashboard: open http://127.0.0.1:18789 and start a chat using the Ollama model
+   - Dashboard: start a chat using the Ollama model
 
 ## Troubleshooting: Can't access http://127.0.0.1:18789
 
@@ -114,14 +137,34 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    docker compose up -d
    ```
 
-5. **Test from the same machine**
+5. **"Disconnected from gateway" / "unauthorized: gateway token missing"**
+   
+   The dashboard page loads but shows a disconnect error. You need to include your token in the URL:
+   ```
+   http://127.0.0.1:18789/?token=YOUR_CLAWDBOT_GATEWAY_TOKEN
+   ```
+   Replace `YOUR_CLAWDBOT_GATEWAY_TOKEN` with the value from your `.env` file. The token is saved in your browser's local storage after the first successful connection.
+
+6. **"Disconnected from gateway" / "pairing required"**
+   
+   The token was accepted but the device (browser) needs to be approved. This is a security feature for new devices:
+   ```bash
+   # List pending pairing requests
+   docker exec moltbot-gateway node dist/index.js devices list
+
+   # Approve the pending request (copy the Request ID from the Pending table)
+   docker exec moltbot-gateway node dist/index.js devices approve <REQUEST_ID>
+   ```
+   After approving, refresh your browser. Each new browser/device will need to be approved once.
+
+7. **Test from the same machine**
    From the host where Docker is running:
    ```bash
    curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:18789
    ```
    If you get `000` or "connection refused", the gateway isn't listening yet (see logs). If you get `200` or `302`, the dashboard is up; open http://127.0.0.1:18789 in a browser on the **same** machine (127.0.0.1 is localhost only).
 
-6. **If the gateway container keeps restarting**
+8. **If the gateway container keeps restarting**
    Rebuild and restart:
    ```bash
    docker compose build moltbot-gateway --no-cache
@@ -129,10 +172,10 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    docker compose logs -f moltbot-gateway
    ```
 
-7. **"Invalid --bind (use loopback, lan, ...)"**
+9. **"Invalid --bind (use loopback, lan, ...)"**
    The gateway expects a named bind mode, not an IP address. The `docker-compose.yml` hardcodes `--bind lan` which is required for Docker networking. Do not change this to `loopback` as it will prevent access from outside the container.
 
-8. **"Missing config" or "Failed to move legacy state dir (.clawdbot → .openclaw)"**
+10. **"Missing config" or "Failed to move legacy state dir (.clawdbot → .openclaw)"**
    The stack is set up to use the new config path (`.openclaw`) and `--allow-unconfigured` so the gateway starts without prior setup. If you still see these errors, ensure you're using the latest `docker-compose.yml`. Then stop, remove the config volume dir so it starts fresh, and bring the stack up again:
    ```bash
    docker compose down
