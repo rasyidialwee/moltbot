@@ -31,9 +31,9 @@ services:
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-ollama-local}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
     volumes:
-      # Use .openclaw (new path) to avoid EBUSY when app migrates .clawdbot -> .openclaw
+      # Mount to .moltbot (Moltbot reads moltbot.json from here)
       # Host directories must be owned by UID 1000 (node user)
-      - ${CLAWDBOT_CONFIG_DIR:-./data/moltbot-config}:/home/node/.openclaw
+      - ${CLAWDBOT_CONFIG_DIR:-./data/moltbot-config}:/home/node/.moltbot
       - ${CLAWDBOT_WORKSPACE_DIR:-./data/moltbot-workspace}:/home/node/clawd
     ports:
       # Bind to 127.0.0.1 on host for security (localhost only)

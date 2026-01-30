@@ -101,6 +101,22 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    - Base URL: `http://ollama:11434` (or `http://ollama:11434/v1` if the UI asks for an OpenAI-compatible base URL)
    - Set your chosen model (e.g. `glm4`) as the default
 
+   **If you can't change the model or Ollama URL in the UI**, use a config file so the agent uses Ollama instead of Anthropic:
+
+   ```bash
+   # Ensure config dir exists and is writable by the container (UID 1000)
+   mkdir -p ./data/moltbot-config
+   sudo chown -R 1000:1000 ./data/
+
+   # Copy the example config (uses Ollama as default model; edit the model name if you use something other than qwen3)
+   cp config-ollama-default.example.json ./data/moltbot-config/moltbot.json
+
+   # Restart the gateway so it picks up the config
+   docker compose restart moltbot-gateway
+   ```
+
+   Edit `./data/moltbot-config/moltbot.json` if needed: change `ollama/qwen3` to the model you pulled (e.g. `ollama/llama3.2`, `ollama/qwen2.5-coder:7b`). List models with `docker compose exec ollama ollama list`.
+
 8. **Verify**
 
    - Ollama: `curl -s http://127.0.0.1:11434/api/tags`
@@ -120,7 +136,7 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    ```
    Look for errors (e.g. missing token, bind/port, permission denied, or crash). Fix any reported issue and restart with `docker compose up -d`.
 
-3. **"EACCES: permission denied, mkdir '/home/node/.openclaw/...'"**
+3. **"EACCES: permission denied, mkdir '/home/node/.moltbot/...'"**
    
    The container runs as the `node` user (UID 1000), but Docker creates bind-mount directories as root. Fix by changing ownership:
    ```bash
@@ -175,8 +191,8 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 9. **"Invalid --bind (use loopback, lan, ...)"**
    The gateway expects a named bind mode, not an IP address. The `docker-compose.yml` hardcodes `--bind lan` which is required for Docker networking. Do not change this to `loopback` as it will prevent access from outside the container.
 
-10. **"Missing config" or "Failed to move legacy state dir (.clawdbot → .openclaw)"**
-   The stack is set up to use the new config path (`.openclaw`) and `--allow-unconfigured` so the gateway starts without prior setup. If you still see these errors, ensure you're using the latest `docker-compose.yml`. Then stop, remove the config volume dir so it starts fresh, and bring the stack up again:
+10. **"Missing config" or "Failed to move legacy state dir"**
+   The stack is set up to use `--allow-unconfigured` so the gateway starts without prior setup. If you still see these errors, ensure you're using the latest `docker-compose.yml`. Then stop, remove the config volume dir so it starts fresh, and bring the stack up again:
    ```bash
    docker compose down
    sudo rm -rf ./data/moltbot-config ./data/moltbot-workspace
@@ -184,6 +200,19 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    sudo chown -R 1000:1000 ./data/
    docker compose up -d
    ```
+
+11. **"No API key found for provider anthropic" / "Embedded agent failed before reply"**
+   The main agent is set to use Anthropic by default but no API key is configured. To use **Ollama only** (no Anthropic):
+
+   - **Option A – Config file (recommended):** Use the Ollama-default config so the agent never asks for Anthropic:
+     ```bash
+     cp config-ollama-default.example.json ./data/moltbot-config/moltbot.json
+     # Edit moltbot.json if your Ollama model is not qwen3 (e.g. change "qwen3" to "llama3.2")
+     docker compose restart moltbot-gateway
+     ```
+   - **Option B – Dashboard:** In Settings → Model providers, add Ollama with Base URL `http://ollama:11434`, then set the default model to an Ollama model (e.g. `ollama/glm4`). If the UI doesn’t show the Ollama base URL or model selector, use Option A.
+
+   Ensure you have pulled at least one Ollama model: `docker compose exec ollama ollama pull glm4` (or `llama3.2`, `mistral`, etc.).
 
 ## Env vars (see `env.example` or `.env.example`)
 
