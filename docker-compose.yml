@@ -1,5 +1,9 @@
 # Moltbot + Ollama (CPU-only). Run locally, then migrate same stack to Dockge.
 # Dashboard: http://127.0.0.1:18789  |  Ollama API: http://127.0.0.1:11434
+#
+# IMPORTANT: Before first run, create data directories with correct permissions:
+#   mkdir -p ./data/moltbot-config ./data/moltbot-workspace
+#   sudo chown -R 1000:1000 ./data/
 
 services:
   ollama:
@@ -28,15 +32,20 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
     volumes:
       # Use .openclaw (new path) to avoid EBUSY when app migrates .clawdbot -> .openclaw
+      # Host directories must be owned by UID 1000 (node user)
       - ${CLAWDBOT_CONFIG_DIR:-./data/moltbot-config}:/home/node/.openclaw
       - ${CLAWDBOT_WORKSPACE_DIR:-./data/moltbot-workspace}:/home/node/clawd
     ports:
+      # Bind to 127.0.0.1 on host for security (localhost only)
       - "127.0.0.1:${CLAWDBOT_GATEWAY_PORT:-18789}:18789"
       - "127.0.0.1:${CLAWDBOT_BRIDGE_PORT:-18790}:18790"
     depends_on:
       - ollama
     init: true
     restart: unless-stopped
+    # --bind lan is required for Docker networking (binds to 0.0.0.0 inside container)
+    # Security is enforced by host port binding to 127.0.0.1 above
+    # Do NOT change to "loopback" - it will break access from outside the container
     command:
       [
         "node",

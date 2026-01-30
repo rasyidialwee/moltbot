@@ -17,13 +17,23 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    ```bash
    cp env.example .env
-   # or: cp .env.example .env
-   # Generate a token and set it in .env:
-   # CLAWDBOT_GATEWAY_TOKEN=$(openssl rand -hex 32)
+   # Generate a token:
+   openssl rand -hex 32
    # Then paste that value into .env for CLAWDBOT_GATEWAY_TOKEN=
    ```
 
-2. **Start the stack**
+2. **Create data directories with correct permissions**
+
+   The container runs as the `node` user (UID 1000). Create the data directories with proper ownership **before** starting:
+
+   ```bash
+   mkdir -p ./data/moltbot-config ./data/moltbot-workspace
+   sudo chown -R 1000:1000 ./data/
+   ```
+
+   > **Why?** Docker creates bind-mount directories as root if they don't exist. The `node` user inside the container cannot write to root-owned directories, causing "EACCES: permission denied" errors.
+
+3. **Start the stack**
 
    ```bash
    docker compose up -d
@@ -31,7 +41,7 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    First run builds the Moltbot image from the [official repo](https://github.com/moltbot/moltbot) (may take several minutes).
 
-3. **Pull an Ollama model**
+4. **Pull an Ollama model**
 
    ```bash
    docker compose exec ollama ollama pull glm4
@@ -61,14 +71,14 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    Pull with: `docker compose exec ollama ollama pull <name>` (e.g. `ollama pull glm4`). Then set that model as the default in the Moltbot dashboard (Settings → Model providers → Ollama).
 
-4. **Configure Ollama in Moltbot**
+5. **Configure Ollama in Moltbot**
 
    - Open http://127.0.0.1:18789
    - In Settings / Model providers, add **Ollama**
    - Base URL: `http://ollama:11434` (or `http://ollama:11434/v1` if the UI asks for an OpenAI-compatible base URL)
    - Set your chosen model (e.g. `glm4`) as the default
 
-5. **Verify**
+6. **Verify**
 
    - Ollama: `curl -s http://127.0.0.1:11434/api/tags`
    - Dashboard: open http://127.0.0.1:18789 and start a chat using the Ollama model
@@ -85,9 +95,17 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    ```bash
    docker compose logs moltbot-gateway
    ```
-   Look for errors (e.g. missing token, bind/port, or crash). Fix any reported issue and restart with `docker compose up -d`.
+   Look for errors (e.g. missing token, bind/port, permission denied, or crash). Fix any reported issue and restart with `docker compose up -d`.
 
-3. **Ensure `.env` exists and `CLAWDBOT_GATEWAY_TOKEN` is set**
+3. **"EACCES: permission denied, mkdir '/home/node/.openclaw/...'"**
+   
+   The container runs as the `node` user (UID 1000), but Docker creates bind-mount directories as root. Fix by changing ownership:
+   ```bash
+   sudo chown -R 1000:1000 ./data/
+   docker compose restart moltbot-gateway
+   ```
+
+4. **Ensure `.env` exists and `CLAWDBOT_GATEWAY_TOKEN` is set**
    The gateway expects a non-empty token. If you didn't set it:
    ```bash
    cp env.example .env
@@ -96,14 +114,14 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    docker compose up -d
    ```
 
-4. **Test from the same machine**
+5. **Test from the same machine**
    From the host where Docker is running:
    ```bash
    curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:18789
    ```
    If you get `000` or "connection refused", the gateway isn't listening yet (see logs). If you get `200` or `302`, the dashboard is up; open http://127.0.0.1:18789 in a browser on the **same** machine (127.0.0.1 is localhost only).
 
-5. **If the gateway container keeps restarting**
+6. **If the gateway container keeps restarting**
    Rebuild and restart:
    ```bash
    docker compose build moltbot-gateway --no-cache
@@ -111,14 +129,16 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    docker compose logs -f moltbot-gateway
    ```
 
-6. **"Invalid --bind (use loopback, lan, ...)"**
-   The gateway expects a named bind mode, not an IP. The stack now hardcodes `--bind loopback` in the gateway command. If you have `CLAWDBOT_GATEWAY_BIND=127.0.0.1` in `.env`, remove it or set it to `loopback`; then run `docker compose up -d`.
+7. **"Invalid --bind (use loopback, lan, ...)"**
+   The gateway expects a named bind mode, not an IP address. The `docker-compose.yml` hardcodes `--bind lan` which is required for Docker networking. Do not change this to `loopback` as it will prevent access from outside the container.
 
-7. **"Missing config" or "Failed to move legacy state dir (.clawdbot → .openclaw)"**
+8. **"Missing config" or "Failed to move legacy state dir (.clawdbot → .openclaw)"**
    The stack is set up to use the new config path (`.openclaw`) and `--allow-unconfigured` so the gateway starts without prior setup. If you still see these errors, ensure you're using the latest `docker-compose.yml`. Then stop, remove the config volume dir so it starts fresh, and bring the stack up again:
    ```bash
    docker compose down
-   rm -rf ./data/moltbot-config ./data/moltbot-workspace
+   sudo rm -rf ./data/moltbot-config ./data/moltbot-workspace
+   mkdir -p ./data/moltbot-config ./data/moltbot-workspace
+   sudo chown -R 1000:1000 ./data/
    docker compose up -d
    ```
 
@@ -127,14 +147,16 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 | Variable | Purpose |
 |----------|--------|
 | `CLAWDBOT_GATEWAY_TOKEN` | Required for dashboard auth; generate with `openssl rand -hex 32` |
-| `CLAWDBOT_GATEWAY_BIND` | Bind mode: `loopback` (local-only), `lan`, `tailnet`, `auto`, or `custom` |
+| `CLAWDBOT_GATEWAY_BIND` | Bind mode (not used in this stack; `docker-compose.yml` hardcodes `--bind lan` for Docker compatibility) |
 | `CLAWDBOT_GATEWAY_PORT` | Gateway/dashboard port (default `18789`) |
 | `CLAWDBOT_CONFIG_DIR` | Host path for Moltbot config (default `./data/moltbot-config`) |
 | `CLAWDBOT_WORKSPACE_DIR` | Host path for workspace (default `./data/moltbot-workspace`) |
 | `OLLAMA_API_KEY` | Set to any value (e.g. `ollama-local`) to enable Ollama provider |
 | `OLLAMA_BASE_URL` | Gateway → Ollama URL (default `http://ollama:11434` in Docker) |
 
-For production or remote access (e.g. on Dockge), see [Moltbot security guidance](https://docs.molt.bot/gateway/configuration): use `GATEWAY_AUTH_TOKEN`, keep `CLAWDBOT_GATEWAY_BIND=loopback` when possible, and use Tailscale/Cloudflare Tunnel instead of exposing the port.
+> **Note on Docker networking**: The gateway must bind to `lan` (0.0.0.0) inside the container for Docker's port mapping to work. Security is enforced by binding to `127.0.0.1` on the host side in `docker-compose.yml`. Do not change `--bind lan` to `loopback` as it will break access.
+
+For production or remote access (e.g. on Dockge), see [Moltbot security guidance](https://docs.molt.bot/gateway/configuration): use `GATEWAY_AUTH_TOKEN` and use Tailscale/Cloudflare Tunnel instead of exposing the port directly.
 
 ## Migrate to home server (Dockge)
 
