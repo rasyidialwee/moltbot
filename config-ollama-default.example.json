@@ -3,7 +3,7 @@
     "defaults": {
       "workspace": "~/clawd",
       "model": {
-        "primary": "ollama/qwen3",
+        "primary": "ollama/qwen3:1.8b",
         "fallbacks": []
       }
     }
@@ -16,8 +16,17 @@
         "api": "openai-completions",
         "models": [
           {
+            "id": "qwen3:1.8b",
+            "name": "Qwen 3 1.8B (fast, CPU-friendly)",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 32768,
+            "maxTokens": 32768
+          },
+          {
             "id": "qwen3",
-            "name": "Qwen 3",
+            "name": "Qwen 3 8B (slower on CPU)",
             "reasoning": false,
             "input": ["text"],
             "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },

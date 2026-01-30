@@ -44,10 +44,12 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 4. **Pull an Ollama model**
 
    ```bash
-   docker compose exec ollama ollama pull glm4
+   # Recommended for CPU-only (fast responses)
+   docker compose exec ollama ollama pull qwen3:1.8b
+   
+   # Or a larger model (slower on CPU, better quality)
+   # docker compose exec ollama ollama pull qwen3
    ```
-
-   Or: `ollama pull llama3.2`, `ollama pull mistral`, etc.
 
    **Check which models are available**
 
@@ -59,17 +61,19 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    Common models you can pull and use with Moltbot:
 
-   | Model | Description |
-   |-------|-------------|
-   | `glm4` | GLM-4, multilingual general/coding (e.g. ~9B params). |
-   | `llama3.2` | Llama 3.2, general chat. |
-   | `llama3.2:3b` | Smaller Llama 3.2 (3B), lighter on CPU. |
-   | `mistral` | Mistral 7B, general purpose. |
-   | `qwen2.5-coder:7b` | Qwen 2.5 Coder, code-focused. |
-   | `qwen3` | Qwen 3, general multilingual chat. |
-   | `qwen3-coder` / `qwen3-coder:30b` | [Qwen3-Coder](https://github.com/QwenLM/Qwen3-Coder): code version of Qwen3 (30B, 256K context). |
+   | Model | Size | Description |
+   |-------|------|-------------|
+   | `qwen3:1.8b` | ~1.5 GB | **Recommended for CPU-only.** Fast responses (~5-10s). |
+   | `llama3.2:3b` | ~2 GB | Smaller Llama 3.2 (3B), good for CPU. |
+   | `qwen3` | ~5 GB | Qwen 3 8B, general multilingual chat. Slower on CPU (~30s+). |
+   | `glm4` | ~5 GB | GLM-4 9B, multilingual general/coding. Slower on CPU. |
+   | `llama3.2` | ~4 GB | Llama 3.2 8B, general chat. |
+   | `mistral` | ~4 GB | Mistral 7B, general purpose. |
+   | `qwen2.5-coder:7b` | ~4.5 GB | Qwen 2.5 Coder, code-focused. |
 
-   Pull with: `docker compose exec ollama ollama pull <name>` (e.g. `ollama pull glm4`). Then set that model as the default in the Moltbot dashboard (Settings → Model providers → Ollama).
+   > **CPU Performance Tip:** Larger models (7B+) are slow on CPU (30+ seconds per response). For CPU-only setups, use `qwen3:1.8b` or `llama3.2:3b` for faster responses.
+
+   Pull with: `docker compose exec ollama ollama pull <name>` (e.g. `ollama pull qwen3:1.8b`). Then set that model as the default in the config file or Moltbot dashboard.
 
 5. **Open the dashboard (with token)**
 
@@ -212,7 +216,7 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
      ```
    - **Option B – Dashboard:** In Settings → Model providers, add Ollama with Base URL `http://ollama:11434`, then set the default model to an Ollama model (e.g. `ollama/glm4`). If the UI doesn’t show the Ollama base URL or model selector, use Option A.
 
-   Ensure you have pulled at least one Ollama model: `docker compose exec ollama ollama pull glm4` (or `llama3.2`, `mistral`, etc.).
+   Ensure you have pulled at least one Ollama model: `docker compose exec ollama ollama pull qwen3:1.8b` (recommended for CPU) or `qwen3`, `llama3.2`, etc.
 
 ## Env vars (see `env.example` or `.env.example`)
 
@@ -230,12 +234,207 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
 For production or remote access (e.g. on Dockge), see [Moltbot security guidance](https://docs.molt.bot/gateway/configuration): use `GATEWAY_AUTH_TOKEN` and use Tailscale/Cloudflare Tunnel instead of exposing the port directly.
 
-## Migrate to home server (Dockge)
+## Migrate to TrueNAS Server (Dockge)
 
-1. Copy this project (or at least `docker-compose.yml`, `Dockerfile`, and `env.example`) to the server.
-2. Create a new stack in Dockge and point it at your `docker-compose.yml` (and `.env` if you use one).
-3. Ensure `.env` on the server has `CLAWDBOT_GATEWAY_TOKEN` set. For remote access, set `GATEWAY_AUTH_TOKEN` and adjust `CLAWDBOT_GATEWAY_BIND` only if you are behind a secure tunnel.
-4. Deploy; no GPU config needed (stack is CPU-only).
+This section covers deploying Moltbot + Ollama on a TrueNAS SCALE server using Dockge for container management.
+
+### Prerequisites (TrueNAS)
+
+- TrueNAS SCALE with Docker/Apps enabled
+- [Dockge](https://dockge.kuma.pet/) installed (via TrueNAS Apps or manual Docker install)
+- A ZFS pool for storing data
+
+### Step 1: Create ZFS Datasets
+
+Create dedicated datasets for persistent data. In TrueNAS Web UI:
+
+1. Go to **Datasets** → Select your pool → **Add Dataset**
+2. Create the following datasets:
+
+   | Dataset Name | Purpose |
+   |--------------|---------|
+   | `moltbot` | Parent dataset for all Moltbot data |
+   | `moltbot/config` | Moltbot configuration (`moltbot.json`, agent state) |
+   | `moltbot/workspace` | Agent workspace files |
+   | `moltbot/ollama` | Ollama models (can be large, 5-50+ GB) |
+   | `moltbot/stacks` | Dockge stacks (if not already set up) |
+
+   Example paths (assuming pool named `tank`):
+   ```
+   /mnt/tank/moltbot
+   /mnt/tank/moltbot/config
+   /mnt/tank/moltbot/workspace
+   /mnt/tank/moltbot/ollama
+   ```
+
+3. **Set permissions** for the config and workspace datasets (Moltbot runs as UID 1000):
+   
+   In TrueNAS Shell or SSH:
+   ```bash
+   # Set ownership to UID 1000 (node user in container)
+   chown -R 1000:1000 /mnt/tank/moltbot/config
+   chown -R 1000:1000 /mnt/tank/moltbot/workspace
+   
+   # Ollama runs as root, so leave default permissions
+   # chown -R root:root /mnt/tank/moltbot/ollama  # (default)
+   ```
+
+### Step 2: Copy Files to TrueNAS
+
+Copy the required files to your Dockge stacks directory:
+
+```bash
+# From your local machine (adjust paths as needed)
+scp docker-compose.yml Dockerfile env.example config-ollama-default.example.json \
+    root@truenas:/mnt/tank/moltbot/stacks/moltbot/
+```
+
+Or create a new directory in Dockge's stacks folder and copy the files there.
+
+### Step 3: Create the Stack in Dockge
+
+1. Open Dockge web UI (e.g., `http://truenas:5001`)
+2. Click **+ Compose** to create a new stack
+3. Name it `moltbot`
+4. Paste or edit the `docker-compose.yml` with TrueNAS paths:
+
+```yaml
+# Moltbot + Ollama for TrueNAS SCALE
+# Adjust /mnt/tank/moltbot to your dataset path
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: moltbot-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - /mnt/tank/moltbot/ollama:/root/.ollama
+    restart: unless-stopped
+
+  moltbot-gateway:
+    image: moltbot:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moltbot-gateway
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      CLAWDBOT_GATEWAY_TOKEN: ${CLAWDBOT_GATEWAY_TOKEN}
+      CLAWDBOT_GATEWAY_PORT: 18789
+      OLLAMA_API_KEY: ollama-local
+      OLLAMA_BASE_URL: http://ollama:11434
+    volumes:
+      - /mnt/tank/moltbot/config:/home/node/.moltbot
+      - /mnt/tank/moltbot/workspace:/home/node/clawd
+    ports:
+      # For LAN access, bind to 0.0.0.0 (or use Tailscale/reverse proxy)
+      - "18789:18789"
+    depends_on:
+      - ollama
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "lan",
+        "--port",
+        "18789",
+        "--allow-unconfigured"
+      ]
+```
+
+5. In Dockge, add environment variables or create a `.env` file:
+   ```
+   CLAWDBOT_GATEWAY_TOKEN=<your-generated-token>
+   ```
+   
+   Generate a token: `openssl rand -hex 32`
+
+### Step 4: Copy the Config File
+
+Before starting, copy the Ollama config so the agent uses Ollama (not Anthropic):
+
+```bash
+# SSH into TrueNAS
+ssh root@truenas
+
+# Copy and edit the config
+cp /mnt/tank/moltbot/stacks/moltbot/config-ollama-default.example.json \
+   /mnt/tank/moltbot/config/moltbot.json
+
+# Edit if using a different model (e.g., qwen3:1.8b for faster CPU responses)
+nano /mnt/tank/moltbot/config/moltbot.json
+```
+
+Ensure permissions:
+```bash
+chown 1000:1000 /mnt/tank/moltbot/config/moltbot.json
+```
+
+### Step 5: Deploy the Stack
+
+1. In Dockge, click **Deploy** (or **Start**)
+2. Wait for the images to build/pull (first run takes several minutes)
+3. Check logs for errors: click on `moltbot-gateway` → **Logs**
+
+### Step 6: Pull an Ollama Model
+
+```bash
+# From TrueNAS shell or Dockge terminal
+docker exec moltbot-ollama ollama pull qwen3:1.8b
+```
+
+Or use the larger `qwen3` if you have enough RAM and can tolerate slower responses.
+
+### Step 7: Access the Dashboard
+
+1. Open `http://<truenas-ip>:18789/?token=YOUR_TOKEN`
+2. Approve device pairing (first time):
+   ```bash
+   docker exec moltbot-gateway node dist/index.js devices list
+   docker exec moltbot-gateway node dist/index.js devices approve <REQUEST_ID>
+   ```
+3. Refresh the browser and start chatting
+
+### TrueNAS-Specific Tips
+
+- **Backup**: Your datasets (`config`, `workspace`, `ollama`) are on ZFS—set up snapshots/replication for backup.
+- **Remote Access**: Use Tailscale or Cloudflare Tunnel instead of exposing port 18789 directly to the internet.
+- **Resource Limits**: In Dockge/docker-compose, you can add CPU/memory limits:
+  ```yaml
+  moltbot-gateway:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+  ollama:
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+  ```
+- **GPU Passthrough** (if TrueNAS host has NVIDIA GPU): Add to the `ollama` service:
+  ```yaml
+  ollama:
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+  ```
+
+### Quick Reference: TrueNAS Paths
+
+| Purpose | Dataset Path | Container Mount |
+|---------|--------------|-----------------|
+| Moltbot config | `/mnt/tank/moltbot/config` | `/home/node/.moltbot` |
+| Agent workspace | `/mnt/tank/moltbot/workspace` | `/home/node/clawd` |
+| Ollama models | `/mnt/tank/moltbot/ollama` | `/root/.ollama` |
 
 ## References
 
