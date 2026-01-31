@@ -23,8 +23,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 4096,
-            "maxTokens": 2048
+            "contextWindow": 40960,
+            "maxTokens": 40960
           },
           {
             "id": "qwen3",
@@ -39,8 +39,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 4096,
-            "maxTokens": 2048
+            "contextWindow": 40960,
+            "maxTokens": 40960
           },
           {
             "id": "llama3.2:3b",
@@ -55,8 +55,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 4096,
-            "maxTokens": 2048
+            "contextWindow": 131072,
+            "maxTokens": 131072
           }
         ]
       }
