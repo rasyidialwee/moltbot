@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.1.27-beta.1",
-    "lastTouchedAt": "2026-01-31T15:55:30.339Z"
+    "lastTouchedAt": "2026-01-31T16:49:35.212Z"
   },
   "models": {
     "providers": {
@@ -68,7 +68,7 @@
         "primary": "ollama/qwen3:1.7b",
         "fallbacks": []
       },
-      "workspace": "~/clawd",
+      "workspace": "/home/node/clawd",
       "maxConcurrent": 4,
       "subagents": {
         "maxConcurrent": 8
@@ -90,5 +90,24 @@
   "commands": {
     "native": "auto",
     "nativeSkills": "auto"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "botToken": "YOUR_TELEGRAM_BOT_TOKEN_HERE",
+      "groupPolicy": "allowlist",
+      "streamMode": "partial"
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
   }
 }

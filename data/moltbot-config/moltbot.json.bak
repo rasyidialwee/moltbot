@@ -1,4 +1,8 @@
 {
+  "meta": {
+    "lastTouchedVersion": "2026.1.27-beta.1",
+    "lastTouchedAt": "2026-01-31T15:55:30.339Z"
+  },
   "models": {
     "providers": {
       "ollama": {
@@ -76,19 +80,22 @@
       "search": {
         "enabled": true,
         "provider": "brave",
-        "apiKey": "YOUR_BRAVE_API_KEY_HERE",
+        "apiKey": "BSAh_ugxAO3eGpHdJfAEFJEd0Oa3bGa",
         "maxResults": 5,
         "timeoutSeconds": 30,
         "cacheTtlMinutes": 15
       }
     }
   },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "YOUR_TELEGRAM_BOT_TOKEN_HERE",
+      "dmPolicy": "pairing"
+    }
+  },
   "commands": {
     "native": "auto",
     "nativeSkills": "auto"
-  },
-  "meta": {
-    "lastTouchedVersion": "2026.1.27-beta.1",
-    "lastTouchedAt": "2026-01-31T15:46:50.968Z"
   }
 }

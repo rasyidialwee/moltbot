@@ -1,2 +1,3 @@
 # Local env (secrets)
 .env
+data/moltbot-config/moltbot.json.*

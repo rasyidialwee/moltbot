@@ -31,6 +31,7 @@ services:
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-ollama-local}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     volumes:
       # Mount to .moltbot (Moltbot reads moltbot.json from here)
       # Host directories must be owned by UID 1000 (node user)
