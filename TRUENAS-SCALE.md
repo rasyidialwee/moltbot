@@ -49,49 +49,31 @@ Create dedicated datasets for persistent data. In TrueNAS Web UI:
    # chown -R root:root /mnt/tank/moltbot/ollama  # (default)
    ```
 
-## Step 2: Copy files to TrueNAS
+## Step 2: Create the stack in Dockge
 
-Copy the required files to your Dockge stacks directory (or the directory used by your Docker Compose app):
+You define the stack in Dockge’s UI: use the **compose YAML editor** for the compose content and the **.env** section for environment variables. You do not copy compose or .env from your machine.
 
-```bash
-# From your local machine (adjust paths as needed)
-scp docker-compose.yml Dockerfile env.example config-ollama-default.example.json \
-    root@truenas:/mnt/tank/moltbot/stacks/moltbot/
-```
+![Dockge interface: stack list, compose YAML editor, and .env section](docs/dockge-interface.png)
 
-Or create a new directory in Dockge’s stacks folder and copy the files there.
-
-## Step 3: Create the stack in Dockge
+*Dockge UI: stack list (left), compose YAML editor and .env section (centre). Use the YAML editor for the compose content and the .env section for variables.*
 
 1. Open Dockge web UI (e.g. `http://truenas:5001` or your Dockge port).
-2. Click **+ Compose** and name the stack `moltbot`.
-3. Use the project’s `docker-compose.yml` and override only what’s needed for TrueNAS:
-   - Set **environment variables** in Dockge (or a `.env` file in the stack folder) so the same compose file works:
+2. Click **+ Compose** and set the stack name to `moltbot` (lowercase).
+3. In the **compose YAML editor**, delete the default content and paste the full compose block below (Option A). Replace `/mnt/tank/moltbot` with your dataset path.
+4. In the **.env** section, add your variables (see table below). Generate a token with `openssl rand -hex 32`.
 
-   | Variable | TrueNAS value (example) |
-   |----------|-------------------------|
-   | `CLAWDBOT_GATEWAY_TOKEN` | `<your-generated-token>` (required) |
-   | `CLAWDBOT_CONFIG_DIR` | `/mnt/tank/moltbot/config` |
-   | `CLAWDBOT_WORKSPACE_DIR` | `/mnt/tank/moltbot/workspace` |
+**Build context:** The gateway service builds from a Dockerfile. Dockge runs from a stack directory; for the build to work, that directory must contain the Dockerfile. After creating the stack, copy the **Dockerfile** (and any files it needs) into the stack folder on TrueNAS (e.g. via SSH or by cloning the repo there).
 
-   - **Ollama** uses a named volume in the default compose. For TrueNAS (ZFS), override the Ollama service to use a bind mount. In Dockge, edit the stack and replace the `ollama` service’s `volumes` with:
 
-   ```yaml
-   volumes:
-     - /mnt/tank/moltbot/ollama:/root/.ollama
-   ```
+**.env variables** (set these in Dockge’s .env section):
 
-   - For **LAN access**, override the gateway ports so they’re not bound to 127.0.0.1. Replace the gateway `ports` with:
+| Variable | TrueNAS value (example) |
+|----------|-------------------------|
+| `CLAWDBOT_GATEWAY_TOKEN` | `<your-generated-token>` (required) |
+| `CLAWDBOT_CONFIG_DIR` | `/mnt/tank/moltbot/config` |
+| `CLAWDBOT_WORKSPACE_DIR` | `/mnt/tank/moltbot/workspace` |
 
-   ```yaml
-   ports:
-     - "18789:18789"
-     - "18790:18790"
-   ```
-
-   So the stack uses: the repo’s `docker-compose.yml` + `.env` with TrueNAS paths and token + the two overrides above (Ollama volume, gateway ports).
-
-4. **Alternative: full override** – If you prefer a single compose file for TrueNAS, use this (replace `/mnt/tank/moltbot` with your pool path):
+**Option A – Full compose** (paste into the compose YAML editor; replace `/mnt/tank/moltbot` with your path):
 
 ```yaml
 # Moltbot + Ollama for TrueNAS SCALE (full override)
@@ -146,26 +128,15 @@ services:
       ]
 ```
 
-5. In Dockge, set environment variables or create a `.env` file in the stack directory:
+## Step 3: Copy the config file
 
-   ```
-   CLAWDBOT_GATEWAY_TOKEN=<your-generated-token>
-   # Optional: override if your paths differ
-   # CLAWDBOT_CONFIG_DIR=/mnt/tank/moltbot/config
-   # CLAWDBOT_WORKSPACE_DIR=/mnt/tank/moltbot/workspace
-   ```
-
-   Generate a token: `openssl rand -hex 32`
-
-## Step 4: Copy the config file
-
-Before starting, copy the Ollama config so the agent uses Ollama (not Anthropic):
+Before starting, copy the Ollama config so the agent uses Ollama (not Anthropic). If you put the repo (or at least `config-ollama-default.example.json`) in the stack folder for the build, use that path; otherwise copy the example file from the repo into the config dataset.
 
 ```bash
 # SSH into TrueNAS
 ssh root@truenas
 
-# Copy and edit the config
+# Copy and edit the config (adjust first path if your stack folder is elsewhere)
 cp /mnt/tank/moltbot/stacks/moltbot/config-ollama-default.example.json \
    /mnt/tank/moltbot/config/moltbot.json
 
@@ -178,13 +149,13 @@ Ensure permissions:
 chown 1000:1000 /mnt/tank/moltbot/config/moltbot.json
 ```
 
-## Step 5: Deploy the stack
+## Step 4: Deploy the stack
 
 1. In Dockge, click **Deploy** (or **Start**)
 2. Wait for the images to build/pull (first run takes several minutes)
 3. Check logs for errors: click on `moltbot-gateway` → **Logs**
 
-## Step 6: Pull an Ollama model
+## Step 5: Pull an Ollama model
 
 ```bash
 # From TrueNAS shell or Dockge terminal
@@ -193,7 +164,7 @@ docker exec moltbot-ollama ollama pull qwen3:1.7b
 
 Or use the larger `qwen3` if you have enough RAM and can tolerate slower responses.
 
-## Step 7: Access the dashboard
+## Step 6: Access the dashboard
 
 1. Open `http://<truenas-ip>:18789/?token=YOUR_TOKEN`
 2. Approve device pairing (first time):
