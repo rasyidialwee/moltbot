@@ -6,8 +6,8 @@
       "api": "openai-completions",
       "models": [
         {
-          "id": "qwen3:1.7b",
-          "name": "Qwen 3 1.7B (fast, CPU-friendly)",
+          "id": "qwen3:latest",
+          "name": "Qwen 3",
           "reasoning": false,
           "input": [
             "text"
@@ -18,8 +18,8 @@
             "cacheRead": 0,
             "cacheWrite": 0
           },
-          "contextWindow": 40960,
-          "maxTokens": 40960
+          "contextWindow": 4096,
+          "maxTokens": 2048
         },
         {
           "id": "qwen3",
@@ -34,8 +34,8 @@
             "cacheRead": 0,
             "cacheWrite": 0
           },
-          "contextWindow": 40960,
-          "maxTokens": 40960
+          "contextWindow": 4096,
+          "maxTokens": 2048
         },
         {
           "id": "llama3.2:3b",
@@ -50,8 +50,8 @@
             "cacheRead": 0,
             "cacheWrite": 0
           },
-          "contextWindow": 131072,
-          "maxTokens": 131072
+          "contextWindow": 4096,
+          "maxTokens": 2048
         }
       ]
     }

@@ -1,8 +1,4 @@
 {
-  "meta": {
-    "lastTouchedVersion": "2026.1.27-beta.1",
-    "lastTouchedAt": "2026-01-31T15:55:30.339Z"
-  },
   "models": {
     "providers": {
       "ollama": {
@@ -23,8 +19,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 4096,
-            "maxTokens": 2048
+            "contextWindow": 40960,
+            "maxTokens": 40960
           },
           {
             "id": "qwen3",
@@ -39,8 +35,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 4096,
-            "maxTokens": 2048
+            "contextWindow": 40960,
+            "maxTokens": 40960
           },
           {
             "id": "llama3.2:3b",
@@ -55,8 +51,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 4096,
-            "maxTokens": 2048
+            "contextWindow": 131072,
+            "maxTokens": 131072
           }
         ]
       }
@@ -80,7 +76,7 @@
       "search": {
         "enabled": true,
         "provider": "brave",
-        "apiKey": "BSAh_ugxAO3eGpHdJfAEFJEd0Oa3bGa",
+        "apiKey": "YOUR_BRAVE_API_KEY_HERE",
         "maxResults": 5,
         "timeoutSeconds": 30,
         "cacheTtlMinutes": 15
@@ -90,5 +86,9 @@
   "commands": {
     "native": "auto",
     "nativeSkills": "auto"
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.1.27-beta.1",
+    "lastTouchedAt": "2026-01-31T15:46:50.968Z"
   }
 }

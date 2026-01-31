@@ -1,0 +1,61 @@
+{
+  "tools": {
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "brave",
+        "apiKey": "YOUR_BRAVE_API_KEY_HERE",
+        "maxResults": 5,
+        "timeoutSeconds": 30,
+        "cacheTtlMinutes": 15
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "~/clawd",
+      "model": {
+        "primary": "ollama/qwen3:1.7b",
+        "fallbacks": []
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "apiKey": "ollama-local",
+        "baseUrl": "http://ollama:11434/v1",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3:latest",
+            "name": "Qwen 3",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 40960,
+            "maxTokens": 40960
+          },
+          {
+            "id": "qwen3",
+            "name": "Qwen 3 8B (slower on CPU)",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 40960,
+            "maxTokens": 40960
+          },
+          {
+            "id": "llama3.2:3b",
+            "name": "Llama 3.2 3B (good for CPU)",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 131072,
+            "maxTokens": 131072
+          }
+        ]
+      }
+    }
+  }
+}
