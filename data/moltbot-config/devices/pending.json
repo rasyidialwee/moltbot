@@ -1,0 +1,23 @@
+{
+  "0d70020b-6378-47f8-aa72-a002c6c6a72c": {
+    "requestId": "0d70020b-6378-47f8-aa72-a002c6c6a72c",
+    "deviceId": "eed365595303094b51a0c721cd2a32be4d0fa346ee63d1f254aaa6d807fbc8df",
+    "publicKey": "txCpGmYiW_LL2ICssGWjoUMcJYXO7aPou98Hz9IZ2Ak",
+    "platform": "Win32",
+    "clientId": "moltbot-control-ui",
+    "clientMode": "webchat",
+    "role": "operator",
+    "roles": [
+      "operator"
+    ],
+    "scopes": [
+      "operator.admin",
+      "operator.approvals",
+      "operator.pairing"
+    ],
+    "remoteIp": "172.22.0.1",
+    "silent": false,
+    "isRepair": false,
+    "ts": 1769824677499
+  }
+}

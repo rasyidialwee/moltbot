@@ -1,5 +1,2 @@
 # Local env (secrets)
 .env
-
-# Moltbot data (created by docker-compose)
-data/

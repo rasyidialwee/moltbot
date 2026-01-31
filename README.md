@@ -45,7 +45,7 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    ```bash
    # Recommended for CPU-only (fast responses)
-   docker compose exec ollama ollama pull qwen3:1.8b
+   docker compose exec ollama ollama pull qwen3:1.7b
    
    # Or a larger model (slower on CPU, better quality)
    # docker compose exec ollama ollama pull qwen3
@@ -63,17 +63,19 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    | Model | Size | Description |
    |-------|------|-------------|
-   | `qwen3:1.8b` | ~1.5 GB | **Recommended for CPU-only.** Fast responses (~5-10s). |
-   | `llama3.2:3b` | ~2 GB | Smaller Llama 3.2 (3B), good for CPU. |
+   | `qwen3:0.6b` | ~500 MB | Fastest, minimal quality. |
+   | `qwen3:1.7b` | ~1.4 GB | **Recommended for CPU-only.** Fast responses (~5-10s). |
+   | `llama3.2:3b` | ~2 GB | Good balance of speed and quality for CPU. |
+   | `qwen3:4b` | ~2.5 GB | Better quality, still reasonable on CPU. |
    | `qwen3` | ~5 GB | Qwen 3 8B, general multilingual chat. Slower on CPU (~30s+). |
    | `glm4` | ~5 GB | GLM-4 9B, multilingual general/coding. Slower on CPU. |
    | `llama3.2` | ~4 GB | Llama 3.2 8B, general chat. |
    | `mistral` | ~4 GB | Mistral 7B, general purpose. |
    | `qwen2.5-coder:7b` | ~4.5 GB | Qwen 2.5 Coder, code-focused. |
 
-   > **CPU Performance Tip:** Larger models (7B+) are slow on CPU (30+ seconds per response). For CPU-only setups, use `qwen3:1.8b` or `llama3.2:3b` for faster responses.
+   > **CPU Performance Tip:** Larger models (7B+) are slow on CPU (30+ seconds per response). For CPU-only setups, use `qwen3:1.7b` or `llama3.2:3b` for faster responses.
 
-   Pull with: `docker compose exec ollama ollama pull <name>` (e.g. `ollama pull qwen3:1.8b`). Then set that model as the default in the config file or Moltbot dashboard.
+   Pull with: `docker compose exec ollama ollama pull <name>` (e.g. `ollama pull qwen3:1.7b`). Then set that model as the default in the config file or Moltbot dashboard.
 
 5. **Open the dashboard (with token)**
 
@@ -99,32 +101,33 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
 
    After approving, refresh your browser. The device is now paired and won't require approval again.
 
-7. **Configure Ollama in Moltbot**
+7. **Configure Ollama (first run)**
 
-   - In Settings / Model providers, add **Ollama**
-   - Base URL: `http://ollama:11434` (or `http://ollama:11434/v1` if the UI asks for an OpenAI-compatible base URL)
-   - Set your chosen model (e.g. `glm4`) as the default
-
-   **If you can't change the model or Ollama URL in the UI**, use a config file so the agent uses Ollama instead of Anthropic:
+   Copy the example config so the agent uses Ollama instead of Anthropic:
 
    ```bash
-   # Ensure config dir exists and is writable by the container (UID 1000)
    mkdir -p ./data/moltbot-config
    sudo chown -R 1000:1000 ./data/
-
-   # Copy the example config (uses Ollama as default model; edit the model name if you use something other than qwen3)
    cp config-ollama-default.example.json ./data/moltbot-config/moltbot.json
-
-   # Restart the gateway so it picks up the config
    docker compose restart moltbot-gateway
    ```
 
-   Edit `./data/moltbot-config/moltbot.json` if needed: change `ollama/qwen3` to the model you pulled (e.g. `ollama/llama3.2`, `ollama/qwen2.5-coder:7b`). List models with `docker compose exec ollama ollama list`.
+   **To change the model:** edit `data/moltbot-config/moltbot.json`, update `agents.defaults.model.primary` (e.g. to `ollama/qwen3:1.7b` or `ollama/llama3.2:3b`), then run `docker compose restart moltbot-gateway`. List available models with `docker compose exec ollama ollama list`.
 
 8. **Verify**
 
    - Ollama: `curl -s http://127.0.0.1:11434/api/tags`
    - Dashboard: start a chat using the Ollama model
+
+### Changing the model
+
+Edit `data/moltbot-config/moltbot.json`, change `agents.defaults.model.primary` to the model you want (e.g. `ollama/qwen3:1.7b`, `ollama/llama3.2:3b`), then restart:
+
+```bash
+docker compose restart moltbot-gateway
+```
+
+List models you have pulled: `docker compose exec ollama ollama list`.
 
 ## Troubleshooting: Can't access http://127.0.0.1:18789
 
@@ -206,17 +209,14 @@ Run [Moltbot](https://molt.bot) with [Ollama](https://ollama.com) locally, then 
    ```
 
 11. **"No API key found for provider anthropic" / "Embedded agent failed before reply"**
-   The main agent is set to use Anthropic by default but no API key is configured. To use **Ollama only** (no Anthropic):
+   The main agent is set to use Anthropic by default but no API key is configured. Use Ollama instead:
 
-   - **Option A – Config file (recommended):** Use the Ollama-default config so the agent never asks for Anthropic:
-     ```bash
-     cp config-ollama-default.example.json ./data/moltbot-config/moltbot.json
-     # Edit moltbot.json if your Ollama model is not qwen3 (e.g. change "qwen3" to "llama3.2")
-     docker compose restart moltbot-gateway
-     ```
-   - **Option B – Dashboard:** In Settings → Model providers, add Ollama with Base URL `http://ollama:11434`, then set the default model to an Ollama model (e.g. `ollama/glm4`). If the UI doesn’t show the Ollama base URL or model selector, use Option A.
+   ```bash
+   cp config-ollama-default.example.json ./data/moltbot-config/moltbot.json
+   docker compose restart moltbot-gateway
+   ```
 
-   Ensure you have pulled at least one Ollama model: `docker compose exec ollama ollama pull qwen3:1.8b` (recommended for CPU) or `qwen3`, `llama3.2`, etc.
+   To change the model later: edit `data/moltbot-config/moltbot.json` and restart the gateway. Ensure you have pulled at least one Ollama model: `docker compose exec ollama ollama pull qwen3:1.7b` (recommended for CPU) or `qwen3`, `llama3.2:3b`, etc.
 
 ## Env vars (see `env.example` or `.env.example`)
 
@@ -367,7 +367,7 @@ ssh root@truenas
 cp /mnt/tank/moltbot/stacks/moltbot/config-ollama-default.example.json \
    /mnt/tank/moltbot/config/moltbot.json
 
-# Edit if using a different model (e.g., qwen3:1.8b for faster CPU responses)
+# Edit if using a different model (e.g., qwen3:1.7b for faster CPU responses)
 nano /mnt/tank/moltbot/config/moltbot.json
 ```
 
@@ -386,7 +386,7 @@ chown 1000:1000 /mnt/tank/moltbot/config/moltbot.json
 
 ```bash
 # From TrueNAS shell or Dockge terminal
-docker exec moltbot-ollama ollama pull qwen3:1.8b
+docker exec moltbot-ollama ollama pull qwen3:1.7b
 ```
 
 Or use the larger `qwen3` if you have enough RAM and can tolerate slower responses.

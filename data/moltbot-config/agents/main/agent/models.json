@@ -1,0 +1,59 @@
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://ollama:11434/v1",
+      "apiKey": "ollama-local",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "qwen3:1.7b",
+          "name": "Qwen 3 1.7B (fast, CPU-friendly)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 40960,
+          "maxTokens": 40960
+        },
+        {
+          "id": "qwen3",
+          "name": "Qwen 3 8B (slower on CPU)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 40960,
+          "maxTokens": 40960
+        },
+        {
+          "id": "llama3.2:3b",
+          "name": "Llama 3.2 3B (good for CPU)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 131072
+        }
+      ]
+    }
+  }
+}
